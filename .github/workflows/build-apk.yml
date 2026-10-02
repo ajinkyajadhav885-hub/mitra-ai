@@ -16,6 +16,54 @@ jobs:
       - name: Extract Project Files
         run: |
           unzip -o mitra_ai_github_upload*.zip
+          if [ ! -f pubspec.yaml ]; then
+            SUBDIR=$(find . -maxdepth 2 -name pubspec.yaml -exec dirname {} \;)
+            if [ -n "$SUBDIR" ]; then
+              echo "Moving files from $SUBDIR to root"
+              cp -r $SUBDIR/. .
+            fi
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mitra-ai-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Extract Project Files
+        run: |
+          unzip -o mitra_ai_github_upload*.zip
           # If files are extracted inside a nested folder, move them to the root
           if [ ! -f pubspec.yaml ]; then
             SUBDIR=$(find . -maxdepth 2 -name pubspec.yaml -exec dirname {} \;)
